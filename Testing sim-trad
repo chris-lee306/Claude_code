@@ -1,0 +1,115 @@
+"""Simplified <-> Traditional Chinese converter web app."""
+from flask import Flask, jsonify, render_template_string, request
+from opencc import OpenCC
+
+app = Flask(__name__)
+
+CONVERTERS = {
+    "s2t": OpenCC("s2t"),      # Simplified -> Traditional
+    "t2s": OpenCC("t2s"),      # Traditional -> Simplified
+    "s2tw": OpenCC("s2tw"),    # Simplified -> Traditional (Taiwan)
+    "s2hk": OpenCC("s2hk"),    # Simplified -> Traditional (Hong Kong)
+}
+
+PAGE = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>简繁转换 · Chinese Converter</title>
+<style>
+  :root { --bg:#f6f5f2; --card:#fff; --ink:#1d1d1f; --muted:#6b6b70; --accent:#c0392b; --line:#e3e1dc; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#16161a; --card:#202026; --ink:#ececf0; --muted:#9a9aa3; --accent:#e5634f; --line:#33333b; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font-family: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+  main { max-width: 1000px; margin: 0 auto; padding: 32px 16px; }
+  h1 { margin: 0 0 4px; font-size: 1.6rem; }
+  p.sub { margin: 0 0 24px; color: var(--muted); }
+  .controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:16px; }
+  select, button { font: inherit; padding: 8px 14px; border-radius: 8px; border:1px solid var(--line);
+                   background: var(--card); color: var(--ink); cursor:pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color:#fff; }
+  .panes { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+  @media (max-width: 700px) { .panes { grid-template-columns: 1fr; } }
+  label { display:block; font-size:.85rem; color:var(--muted); margin-bottom:6px; }
+  textarea { width:100%; min-height:260px; padding:12px; font-size:1.1rem; line-height:1.6;
+             border-radius:10px; border:1px solid var(--line); background:var(--card); color:var(--ink); resize:vertical; }
+  #status { color: var(--muted); font-size:.85rem; margin-left:auto; }
+</style>
+</head>
+<body>
+<main>
+  <h1>简繁转换 · 簡繁轉換</h1>
+  <p class="sub">Convert between Simplified and Traditional Chinese. Converts as you type.</p>
+  <div class="controls">
+    <select id="mode">
+      <option value="s2t">简体 → 繁體</option>
+      <option value="t2s">繁體 → 简体</option>
+      <option value="s2tw">简体 → 繁體 (台灣)</option>
+      <option value="s2hk">简体 → 繁體 (香港)</option>
+    </select>
+    <button id="swap" title="Swap direction">⇄ Swap</button>
+    <button id="copy" class="primary">Copy result</button>
+    <span id="status"></span>
+  </div>
+  <div class="panes">
+    <div><label for="input">Input</label>
+      <textarea id="input" placeholder="在这里输入中文……">汉字简化后，书写变得更加方便。</textarea></div>
+    <div><label for="output">Output</label>
+      <textarea id="output" readonly></textarea></div>
+  </div>
+</main>
+<script>
+  const $ = id => document.getElementById(id);
+  let timer;
+  async function convert() {
+    const res = await fetch("/api/convert", {
+      method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({text: $("input").value, mode: $("mode").value})
+    });
+    const data = await res.json();
+    $("output").value = data.result ?? "";
+    $("status").textContent = data.error || "";
+  }
+  const debounced = () => { clearTimeout(timer); timer = setTimeout(convert, 200); };
+  $("input").addEventListener("input", debounced);
+  $("mode").addEventListener("change", convert);
+  $("swap").addEventListener("click", () => {
+    const m = $("mode").value;
+    $("mode").value = m === "t2s" ? "s2t" : "t2s";
+    $("input").value = $("output").value;
+    convert();
+  });
+  $("copy").addEventListener("click", async () => {
+    await navigator.clipboard.writeText($("output").value);
+    $("status").textContent = "Copied!";
+    setTimeout(() => $("status").textContent = "", 1500);
+  });
+  convert();
+</script>
+</body>
+</html>"""
+
+
+@app.get("/")
+def index():
+    return render_template_string(PAGE)
+
+
+@app.post("/api/convert")
+def convert():
+    data = request.get_json(silent=True) or {}
+    text = data.get("text", "")
+    mode = data.get("mode", "s2t")
+    if mode not in CONVERTERS:
+        return jsonify(error=f"Unknown mode: {mode}"), 400
+    if len(text) > 100_000:
+        return jsonify(error="Text too long (max 100,000 characters)"), 413
+    return jsonify(result=CONVERTERS[mode].convert(text))
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=True)
