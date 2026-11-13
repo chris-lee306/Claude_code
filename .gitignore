@@ -1,0 +1,5 @@
+__pycache__/
+jenga/runs/
+jenga/out/
+jenga/agent4.log
+jenga/replays.log
