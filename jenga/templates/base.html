@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{% block title %}Jenga{% endblock %} · Jenga</title>
+<script>try{var t=localStorage.getItem("jenga-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;}catch(e){}</script>
 <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='22' width='24' height='6' rx='1.5' fill='%233b5bdb'/%3E%3Crect x='8' y='14' width='24' height='6' rx='1.5' fill='%239aaef0'/%3E%3Crect x='2' y='6' width='24' height='6' rx='1.5' fill='%233b5bdb'/%3E%3C/svg%3E">
 </head>
@@ -35,6 +36,11 @@
       <p class="muted small">No runs yet. Ask a question to start.</p>
       {% endfor %}
     </nav>
+    <div class="theme" role="radiogroup" aria-label="Colour theme">
+      <button type="button" class="theme-btn" data-theme-choice="system" role="radio" title="Match system">{{ icon('monitor') }}<span>System</span></button>
+      <button type="button" class="theme-btn" data-theme-choice="light" role="radio" title="Light">{{ icon('sun') }}<span>Light</span></button>
+      <button type="button" class="theme-btn" data-theme-choice="dark" role="radio" title="Dark">{{ icon('moon') }}<span>Dark</span></button>
+    </div>
   </aside>
 
   <main class="main">

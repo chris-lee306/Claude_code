@@ -116,3 +116,33 @@ function initRunPage() {
   // close the mobile sidebar when navigating
   document.querySelectorAll(".side a").forEach((a) => a.addEventListener("click", () => document.body.classList.remove("side-open")));
 }
+
+// ---- colour theme: system / light / dark ----------------------------------
+function currentTheme() {
+  try { const t = localStorage.getItem("jenga-theme"); return t === "light" || t === "dark" ? t : "system"; }
+  catch (e) { return "system"; }
+}
+
+function applyTheme(choice) {
+  const set = (root) => {
+    if (!root) return;
+    if (choice === "system") delete root.dataset.theme; else root.dataset.theme = choice;
+  };
+  set(document.documentElement);
+  document.querySelectorAll("iframe").forEach((f) => {
+    try { set(f.contentDocument && f.contentDocument.documentElement); } catch (e) {}
+  });
+  document.querySelectorAll(".theme-btn").forEach((b) =>
+    b.setAttribute("aria-checked", String(b.dataset.themeChoice === choice)));
+}
+
+(function initTheme() {
+  document.querySelectorAll(".theme-btn").forEach((b) => b.addEventListener("click", () => {
+    const choice = b.dataset.themeChoice;
+    try { if (choice === "system") localStorage.removeItem("jenga-theme"); else localStorage.setItem("jenga-theme", choice); } catch (e) {}
+    applyTheme(choice);
+  }));
+  // reports embedded in iframes follow the app's theme
+  document.querySelectorAll("iframe").forEach((f) => f.addEventListener("load", () => applyTheme(currentTheme())));
+  applyTheme(currentTheme());
+})();
