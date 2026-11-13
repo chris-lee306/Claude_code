@@ -1,3 +1,0 @@
-# claude_code
-
-Hi! 👋
